@@ -1,13 +1,37 @@
-# 🧠 Identity Reconciliation Service
 
-A Node.js-based microservice for intelligently linking and unifying customer contact information (emails and phone numbers). It ensures accurate contact relationships by maintaining a primary–secondary structure and dynamically merging identities based on shared contact details.
+# Identity Reconciliation Service
+
+<p align="center">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white"/>
+  <img alt="npm" src="https://img.shields.io/badge/npm-CB3837?style=for-the-badge&logo=npm&logoColor=white"/>
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white"/>
+  <img alt="Express.js" src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white"/>
+  <img alt="Prisma" src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white"/>
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
+</p>
+
+## 🚀 Hosted Version
+
+You can directly test the deployed app on [Railway](https://identityreconcillation-production.up.railway.app):
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "john.doe@example.com",
+        "phoneNumber": "1234567890"
+      }' \
+  https://identityreconcillation-production.up.railway.app/identify
+
+curl https://identityreconcillation-production.up.railway.app/health
+```
 
 ---
 
-## 📚 Table of Contents
+## Table of Contents
 
 - [Project Description](#project-description)
-- [Contact Table Schema](#contact-table-schema)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
@@ -18,73 +42,64 @@ A Node.js-based microservice for intelligently linking and unifying customer con
   - [4. Local Setup (Alternative)](#4-local-setup-alternative)
 - [Demo & Local Testing](#demo--local-testing)
 - [API Endpoints](#api-endpoints)
-  - [POST /identify](#post-identify)
 - [Project Structure](#project-structure)
 - [License](#license)
 
----
+## Project Description
 
-## 📖 Project Description
+This service implements the Identity Reconciliation logic to unify and link customer contact information (phone numbers and emails). It manages primary and secondary contact relationships, ensuring data integrity and providing a consolidated view of customer identities based on shared contact details.
 
-This service implements Identity Reconciliation logic to unify and link customer contact information (phone numbers and emails). It maintains **primary** and **secondary** contact relationships, ensuring a consolidated view of identities and preserving data integrity.
+The application intelligently handles various scenarios:
 
----
+- **New Contact**: Creates a new primary contact if no matching email or phone number exists.
+- **Linking Existing Contacts**: If an incoming contact shares an email or phone number with an existing primary contact, the new contact is linked as a secondary.
+- **Merging Primary Contacts**: If an incoming contact links two previously distinct primary contacts, the older primary remains primary, and the newer primary (and its linked secondaries) are converted to secondary contacts.
 
-## 🗂️ Contact Table Schema
+### Contact Table Schema
 
-```prisma
+```ts
 {
-  id             Int
-  phoneNumber    String?
-  email          String?
-  linkedId       Int?                // ID of the primary contact (if this is secondary)
-  linkPrecedence "primary"|"secondary" // "primary" if it's the root contact
-  createdAt      DateTime
-  updatedAt      DateTime
-  deletedAt      DateTime?
+  id: Int
+  phoneNumber: String?
+  email: String?
+  linkedId: Int? // the ID of another Contact linked to this one
+  linkPrecedence: "secondary" | "primary"
+  createdAt: DateTime
+  updatedAt: DateTime
+  deletedAt: DateTime?
 }
 ```
 
----
+## Features
 
-## 🚀 Features
+- Automatic Contact Linking
+- Primary/Secondary Designation
+- Dynamic Identity Merging
+- Consolidated Identity View
+- New Contact Creation
+- Rate Limiting
+- Health Check
+- Containerized Development
 
-- 🔗 **Automatic Contact Linking**: Connects entries by shared emails or phone numbers.
-- 👑 **Primary/Secondary Designation**: Assigns oldest record as primary.
-- ♻️ **Dynamic Merging**: Unifies identities when previously separate primaries are linked.
-- 🧩 **Consolidated Identity View**: Unified JSON response for contact sets.
-- ➕ **New Contact Creation**: Creates new primary contacts for fresh entries.
-- 🛡️ **Rate Limiting**: Prevents abuse of the API.
-- ✅ **Health Check Endpoint**: Quickly verify service uptime.
-- 🐳 **Containerized Setup**: Built using Docker + Docker Compose.
-
----
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Backend**: Node.js (v18+)
 - **Framework**: Express.js
 - **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL (v15)
-- **Validation**: Joi
-- **Rate Limiting**: `express-rate-limit`
 - **Containerization**: Docker, Docker Compose
+- **Validation**: Joi
+- **Rate Limiting**: express-rate-limit
 
----
+## Prerequisites
 
-## ⚙️ Prerequisites
+- Git
+- Node.js (v18+)
+- npm
+- Docker Desktop (recommended)
 
-Make sure you have the following tools installed:
-
-- [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/) (v18+)
-- [npm](https://www.npmjs.com/) (comes with Node.js)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) *(recommended)*
-
----
-
-## 🧰 Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 
@@ -93,94 +108,71 @@ git clone https://github.com/YOUR_USERNAME/identity-reconciliation-service.git
 cd identity-reconciliation-service
 ```
 
----
-
 ### 2. Environment Variables
 
-- Copy `.env.example` to `.env`
-- Fill in values accordingly
-- **Do not commit** `.env` to Git
-
----
+Create a `.env` file in the root using `.env.example` as a reference. Do not commit `.env` to Git.
 
 ### 3. Docker Setup (Recommended)
 
 ```bash
-# Stop and clean any old containers/volumes
 docker compose down -v
-
-# Build images
 docker compose build
-
-# Start containers
 docker compose up -d
 
 # Run migrations
 docker compose exec app npx prisma migrate dev --name init
-
-# Generate Prisma client
 docker compose exec app npx prisma generate
 ```
 
----
+### 4. Local Setup (Alternative - Not Recommended)
 
-### 4. Local Setup (Alternative)
-
-> Only use this if Docker is not available.
+- Install Node.js, npm, and PostgreSQL locally
+- Create `identity_db` and user `identity_user:bitspeed`
+- Run:
 
 ```bash
-# Install dependencies
 npm install
-
-# Ensure PostgreSQL is running and `identity_db` exists
-
-# Run migration & generate client
 npx prisma migrate dev --name init
 npx prisma generate
-
-# Build and start
 npm run build
-npm start
+npm run start
 ```
 
----
+## Demo & Local Testing
 
-## 🧪 Demo & Local Testing
+- Hosted: [Railway](https://identityreconcillation-production.up.railway.app)
+- Local: http://localhost:3000
 
 ### 1. Health Check
 
 ```bash
-curl http://localhost:3000/health
+curl https://identityreconcillation-production.up.railway.app/health
+# or locally: curl http://localhost:3000/health
+```
+
+### 2. Identify Endpoint
+
+```json
+POST /identify
+{
+  "email"?: string,
+  "phoneNumber"?: string
+}
+```
+
+**Example:**
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "lorraine@hillvalley.edu",
+        "phoneNumber": "123456"
+      }' \
+  https://identityreconcillation-production.up.railway.app/identify
 ```
 
 **Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-07-01T12:00:00.000Z",
-  "environment": "development"
-}
-```
-
----
-
-## 📬 API Endpoints
-
-### POST `/identify`
-
-Reconciles identity based on input contact info.
-
-#### ✅ Request
-```json
-{
-  "email": "lorraine@hillvalley.edu",
-  "phoneNumber": "123456"
-}
-```
-
-At least one of `email` or `phoneNumber` is required.
-
-#### ✅ Success Response (200 OK)
 ```json
 {
   "contact": {
@@ -192,38 +184,32 @@ At least one of `email` or `phoneNumber` is required.
 }
 ```
 
-#### ❌ Error Responses
-
-- `400 Bad Request`: No contact info provided
-- `500 Internal Server Error`: Unexpected server error
-
----
-
-## 🗃️ Project Structure
+## Project Structure
 
 ```
 .
 ├── src/
-│   ├── controllers/         # API request handlers
-│   ├── services/            # Business logic
-│   ├── models/              # Prisma client & types
-│   ├── routes/              # Route definitions
-│   ├── utils/               # Validation and helpers
-│   ├── server.ts            # Entry point
-│   └── types.ts             # Custom TypeScript types
+│   ├── controllers/
+│   ├── services/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   ├── server.ts
+│   └── types.ts
 ├── prisma/
-│   ├── migrations/          # Prisma migrations
-│   └── schema.prisma        # Data model
-├── .env.example             # Sample env file
-├── Dockerfile               # Docker image instructions
-├── docker-compose.yml       # App + DB service
-├── package.json             # App metadata and deps
-├── tsconfig.json            # TypeScript config
-└── README.md                # You are here
+│   ├── migrations/
+│   └── schema.prisma
+├── .env.example
+├── .env
+├── .dockerignore
+├── .gitignore
+├── Dockerfile
+├── docker-compose.yml
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
----
+## License
 
-## 📄 License
-
-This project is licensed under the [MIT License](./LICENSE).
+MIT License
