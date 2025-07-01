@@ -45,6 +45,15 @@ app.get('/health', (_req, res) => {
   });
 });
 
+
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    message: 'Welcome to the Identity Reconciliation API! Use the /identify or /health endpoint for operations.',
+    documentation: 'Refer to the GitHub README for API usage details.',
+    status: 'running'
+  });
+});
+
 // API routes
 app.use('/', identityRoutes);
 
