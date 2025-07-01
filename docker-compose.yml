@@ -3,18 +3,20 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "${PORT}:${PORT}" # Use PORT from .env
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:password@db:5432/identity_db # This matches the initial DB setup
-      - RATE_LIMIT_WINDOW_MS=900000
-      - RATE_LIMIT_MAX=100
+      - NODE_ENV=${NODE_ENV} # Use NODE_ENV from .env
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - PORT=${PORT} # Make sure the app itself knows its port
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS} # Use ALLOWED_ORIGINS from .env
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS} # Use RATE_LIMIT_WINDOW_MS from .env
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX} # Use RATE_LIMIT_MAX from .env
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT}/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,16 +25,18 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=identity_db
-      - POSTGRES_USER=postgres # Initial DB user
-      - POSTGRES_PASSWORD=password # Initial DB password
+      # These variables are now directly pulled from your .env file
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # Use POSTGRES_USER from .env for the health check
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
