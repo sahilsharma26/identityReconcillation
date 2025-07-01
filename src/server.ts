@@ -8,6 +8,17 @@ import identityRoutes from './routes/identityRoutes';
 
 const app = express();
 
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// --- ADD THIS DEBUG LOG HERE ---
+app.use((req, _res, next) => {
+  console.log('SERVER DEBUG: Request path:', req.path);
+  console.log('SERVER DEBUG: Request body after express.json():', req.body);
+  next();
+});
+
 // Security middleware
 app.use(securityMiddleware);
 app.use(rateLimitMiddleware);
@@ -24,9 +35,6 @@ app.use(cors({
 // Logging
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

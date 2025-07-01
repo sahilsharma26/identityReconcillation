@@ -1,45 +1,53 @@
 
+
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Optional: Pass DATABASE_URL as a build arg if 'prisma generate' absolutely needs it at build time
+      # For most cases, just having schema.prisma is enough for 'generate'
+      # args:
+      #   - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
-      - "${PORT}:${PORT}" # Use PORT from .env
+      - "${PORT}:${PORT}" # Maps host port (from .env) to container port (from .env)
     environment:
-      - NODE_ENV=${NODE_ENV} # Use NODE_ENV from .env
+      # These are runtime environment variables, read from .env locally, or from Railway's config
+      - NODE_ENV=${NODE_ENV}
+      # This DATABASE_URL uses variables for connection to the 'db' service within Docker network
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - PORT=${PORT} # Make sure the app itself knows its port
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS} # Use ALLOWED_ORIGINS from .env
-      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS} # Use RATE_LIMIT_WINDOW_MS from .env
-      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX} # Use RATE_LIMIT_MAX from .env
+      - PORT=${PORT}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
     depends_on:
       db:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
+        condition: service_healthy # Ensures the 'db' service is healthy before starting 'app'
+    restart: unless-stopped # Automatically restart the container unless manually stopped
+    healthcheck: # Health check for Docker Compose to determine app readiness
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT}/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 40s # Gives the app time to start before health checks begin
 
   db:
     image: postgres:15-alpine
     environment:
-      # These variables are now directly pulled from your .env file
+      # These PostgreSQL specific environment variables are loaded from your .env file
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5432:5432" # Maps host port 5432 to container port 5432 (useful for external tools like DBeaver)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data # Persists database data outside the container
     restart: unless-stopped
-    healthcheck:
-      # Use POSTGRES_USER from .env for the health check
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+    healthcheck: # Health check for the PostgreSQL database
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # Checks if the database is ready for connections
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  postgres_data:
+  postgres_data: # Defines the named volume for PostgreSQL data persistence
